@@ -1,3 +1,5 @@
+*.pyc
+
 # Temporary files
 syntax: glob
 *.class
@@ -7,6 +9,7 @@ syntax: glob
 *.old
 .DS_Store
 tags
+tmp/
 
 # Build files
 target/

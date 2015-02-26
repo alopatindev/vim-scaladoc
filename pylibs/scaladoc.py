@@ -29,10 +29,14 @@ import webbrowser
 
 SCALADOC_HOME = 'http://www.scala-lang.org/api/current'
 SCALADOC_INDEX = SCALADOC_HOME + '/index.html'
+OFFICIAL_SITE_CACHE_FILE = 'official_site_cache'
+
+SPARKDOC_HOME = 'http://spark.apache.org/docs/1.2.1/api/scala'
+SPARKDOC_INDEX = SPARKDOC_HOME + '/index.html'
+SPARK_SITE_CACHE_FILE = 'spark_site_cache'
 
 DEFAULT_CACHE_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..', 'tmp'))
-OFFICIAL_SITE_CACHE_FILE = 'official_site_cache'
 
 HREF_PATTERN = re.compile('href="([^ ><]*)"', re.I|re.U)
 
@@ -62,10 +66,12 @@ def Search(
   _ClearStaleCacheEntries(cache_dir, cache_ttl)
 
   official_site_cache_id = os.path.join(cache_dir, OFFICIAL_SITE_CACHE_FILE)
-  caches = { official_site_cache_id: SCALADOC_HOME }
+  spark_site_cache_id    = os.path.join(cache_dir, SPARK_SITE_CACHE_FILE)
+  caches = { official_site_cache_id: SCALADOC_HOME, spark_site_cache_id: SPARKDOC_HOME}
 
   # official scaladoc
-  _CheckOfficialScaladocCache(official_site_cache_id, cache_ttl)
+  _CheckOfficialScaladocCache(caches, official_site_cache_id, cache_ttl)
+  _CheckOfficialScaladocCache(caches, spark_site_cache_id, cache_ttl)
 
   # if docs local to file, add them to path
   api_path = _FindLocalDocs(file_name)
@@ -114,7 +120,7 @@ def OpenUrl(url):
   webbrowser.open(url)
 
 
-def _CheckOfficialScaladocCache(cache_id, cache_ttl):
+def _CheckOfficialScaladocCache(caches_map, cache_id, cache_ttl):
   """Checks if official scaladoc cache needs updating.
 
   Args:
@@ -129,20 +135,20 @@ def _CheckOfficialScaladocCache(cache_id, cache_ttl):
     update_cache = (last_modified < next_refresh)
   else:
     update_cache = True
-
+  
   if update_cache:
     obj_entry, prev_entry = None, None
-    with open(cache_id, 'w+') as cache:
-      conn = urllib2.urlopen(SCALADOC_INDEX)
+    with open(cache_id, 'w+') as cache_file:
+      conn = urllib2.urlopen(caches_map[cache_id])
       for line in conn.readlines():
         for m in HREF_PATTERN.finditer(line):
           obj_entry, prev_entry = _WriteCacheEntry(
-              cache, m.group(1), obj_entry, prev_entry)
+              cache_file, m.group(1), obj_entry, prev_entry)
       conn.close()
 
       # Check for any last solo object entries (have no companions)
       if obj_entry:
-        cache.write(obj_entry + '\n')
+        cache_file.write(obj_entry + '\n')
 
 
 def _FindLocalDocs(path):

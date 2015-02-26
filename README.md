@@ -1,3 +1,5 @@
+This fork consists in adding the Spark scala doc in the index of ScalaDoc.
+
 # Overview
 
 The vim-scaladoc plug-in is for use with [Vim](http://www.vim.org/) - who
