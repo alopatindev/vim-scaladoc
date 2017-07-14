@@ -290,3 +290,5 @@ def main():
 
 if __name__ == "__main__":
   main()
+
+# vim: set shiftwidth=2:softtabstop=2:tabstop=2
