@@ -74,7 +74,7 @@ run in order to pickup changes from a local build.
 There are no built-in mappings added for scaladoc, but it is simple enough to
 add your own. For example:
 
-    nnoremap <F1> :call ScalaDoc(expand("<cword>"))<CR>
+    nnoremap <F1> :call scaladoc#Search(expand("<cword>"))<CR>
 
 # License
 
