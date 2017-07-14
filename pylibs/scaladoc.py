@@ -27,11 +27,11 @@ import time
 import urllib2
 import webbrowser
 
-SCALADOC_HOME = 'http://www.scala-lang.org/api/current'
+SCALADOC_HOME = 'https://www.scala-lang.org/api/current'
 SCALADOC_INDEX = SCALADOC_HOME + '/index.html'
 OFFICIAL_SITE_CACHE_FILE = 'official_site_cache'
 
-SPARKDOC_HOME = 'http://spark.apache.org/docs/1.2.1/api/scala'
+SPARKDOC_HOME = 'https://spark.apache.org/docs/latest/api/scala'
 SPARKDOC_INDEX = SPARKDOC_HOME + '/index.html'
 SPARK_SITE_CACHE_FILE = 'spark_site_cache'
 
