@@ -64,8 +64,9 @@ A few variables are available to customize settings:
                              (Default: `tmp` dir of install directory)
     g:scaladoc_cache_ttl  :  TTL (days) for cached indexes
                              (Default: 15 days)
-    g:scaladoc_paths      :  Additional paths (comma sep) to search for
-                             scaladocs (Default: '')
+    g:scaladoc_paths      :  Local directory paths (comma sep) to search for
+                             scaladocs (Default: '',
+                             Example: '/helloworld/target/scala-2.11/api/')
 
 Note: The TTL applies to the official scaladoc site and to general cache
 cleanup. Local API files are checked for modifications each time `:ScalaDoc` is
