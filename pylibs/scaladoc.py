@@ -80,6 +80,8 @@ def Search(
 
   # additional paths
   for api_path in scaladoc_paths:
+    if api_path.endswith('/'):
+      api_path = api_path[:-1]
     api_path = os.path.expanduser(api_path)
     cache_id = os.path.join(
         cache_dir, 'local_' + hashlib.sha1(api_path).hexdigest())
@@ -138,17 +140,19 @@ def _CheckOfficialScaladocCache(caches_map, cache_id, cache_ttl):
   
   if update_cache:
     obj_entry, prev_entry = None, None
-    with open(cache_id, 'w+') as cache_file:
-      conn = urllib2.urlopen(caches_map[cache_id])
-      for line in conn.readlines():
-        for m in HREF_PATTERN.finditer(line):
-          obj_entry, prev_entry = _WriteCacheEntry(
-              cache_file, m.group(1), obj_entry, prev_entry)
-      conn.close()
+    output_entries = set()
+    conn = urllib2.urlopen(caches_map[cache_id])
+    for line in conn.readlines():
+      for m in HREF_PATTERN.finditer(line):
+        obj_entry, prev_entry = _ParseCacheEntry(
+            output_entries, m.group(1), obj_entry, prev_entry)
+    conn.close()
 
-      # Check for any last solo object entries (have no companions)
-      if obj_entry:
-        cache_file.write(obj_entry + '\n')
+    # Check for any last solo object entries (have no companions)
+    if obj_entry:
+      output_entries.add(obj_entry)
+
+    _WriteCache(cache_id, output_entries)
 
 
 def _FindLocalDocs(path):
@@ -213,20 +217,29 @@ def _CheckLocalCache(cache_id, api_path):
 
   if update_cache:
     obj_entry, prev_entry = None, None
-    with open(cache_id, 'w+') as cache:
-      with open(api_index, 'r') as f:
-        for line in f:
-          for m in HREF_PATTERN.finditer(line):
-            obj_entry, prev_entry = _WriteCacheEntry(
-                cache, m.group(1), obj_entry, prev_entry)
-        # Check for any last solo object entries (have no companions)
-        if obj_entry:
-          cache.write(obj_entry + '\n')
+    output_entries = set()
+    with open(api_index, 'r') as f:
+      for line in f:
+        for m in HREF_PATTERN.finditer(line):
+          obj_entry, prev_entry = _ParseCacheEntry(
+              output_entries, m.group(1), obj_entry, prev_entry)
+
+      # Check for any last solo object entries (have no companions)
+      if obj_entry:
+        output_entries.add(obj_entry)
+
+      _WriteCache(cache_id, output_entries)
 
   return True
 
 
-def _WriteCacheEntry(cache, entry, obj_entry, prev_entry):
+def _WriteCache(filename, entries):
+  with open(filename, 'w+') as f:
+    output = '\n'.join(sorted(entries)) + '\n'
+    f.write(output)
+
+
+def _ParseCacheEntry(output_entries, entry, obj_entry, prev_entry):
   """Write a cache entry taking into account if scala companion was written.
 
   Args:
@@ -247,10 +260,10 @@ def _WriteCacheEntry(cache, entry, obj_entry, prev_entry):
       obj_entry = None  # ok to add object, no companion
 
   if obj_entry:
-    cache.write(obj_entry + '\n')  # solo object entry (no companion)
+    output_entries.add(obj_entry)  # solo object entry (no companion)
     obj_entry = None
 
-  cache.write(entry + '\n')
+  output_entries.add(entry)
   return (obj_entry, entry)
 
 
