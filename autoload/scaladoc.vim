@@ -52,11 +52,12 @@ import scaladoc
 cur_file = vim.eval('cur_file')
 keywords = vim.eval('a:keywords').split(',')
 scaladoc_paths = vim.eval('g:scaladoc_paths').split(',')
+scaladoc_urls = vim.eval('g:scaladoc_urls').split(',')
 cache_dir = vim.eval('g:scaladoc_cache_dir')
 cache_ttl = int(vim.eval('g:scaladoc_cache_ttl'))
 
 matches = scaladoc.Search(
-    cur_file, keywords, scaladoc_paths, cache_dir, cache_ttl)
+    cur_file, keywords, scaladoc_paths, scaladoc_urls, cache_dir, cache_ttl)
 
 for match in matches:
   vim.command('call add(matches, "%s")' % match.strip())

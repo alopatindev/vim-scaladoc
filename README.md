@@ -67,6 +67,8 @@ A few variables are available to customize settings:
     g:scaladoc_paths      :  Local directory paths (comma sep) to search for
                              scaladocs (Default: '',
                              Example: '/helloworld/target/scala-2.11/api/')
+    g:scaladoc_urls       :  URLs (comma sep) to search for scaladocs
+                             (Default: 'https://www.scala-lang.org/api/current')
 
 Note: The TTL applies to the official scaladoc site and to general cache
 cleanup. Local API files are checked for modifications each time `:ScalaDoc` is

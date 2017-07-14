@@ -61,6 +61,9 @@ endif
 if !exists("g:scaladoc_paths")
   let g:scaladoc_paths = ''
 endif
+if !exists("g:scaladoc_urls")
+  let g:scaladoc_urls = 'https://www.scala-lang.org/api/current'
+endif
 
 if !exists(":ScalaDoc")
   command -buffer -nargs=+ ScalaDoc :call scaladoc#Search('<f-args>')

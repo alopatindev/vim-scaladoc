@@ -27,21 +27,13 @@ import time
 import urllib2
 import webbrowser
 
-SCALADOC_HOME = 'https://www.scala-lang.org/api/current'
-SCALADOC_INDEX = SCALADOC_HOME + '/index.html'
-OFFICIAL_SITE_CACHE_FILE = 'official_site_cache'
-
-SPARKDOC_HOME = 'https://spark.apache.org/docs/latest/api/scala'
-SPARKDOC_INDEX = SPARKDOC_HOME + '/index.html'
-SPARK_SITE_CACHE_FILE = 'spark_site_cache'
-
 DEFAULT_CACHE_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..', 'tmp'))
 
 HREF_PATTERN = re.compile('href="([^ ><]*)"', re.I|re.U)
 
 def Search(
-    file_name, keywords, scaladoc_paths=[], cache_dir=None, cache_ttl=15):
+    file_name, keywords, scaladoc_paths=[], scaladoc_urls=[], cache_dir=None, cache_ttl=15):
   """Searchs for scala doc files based on keywords (package/class names).
 
   Args:
@@ -63,15 +55,18 @@ def Search(
   if not os.path.exists(cache_dir):
     _mkdir_p(cache_dir)
 
+  def _ComputeCacheId(path):
+    hashsum = hashlib.sha1(path).hexdigest()
+    return os.path.join(cache_dir, hashsum)
+
   _ClearStaleCacheEntries(cache_dir, cache_ttl)
 
-  official_site_cache_id = os.path.join(cache_dir, OFFICIAL_SITE_CACHE_FILE)
-  spark_site_cache_id    = os.path.join(cache_dir, SPARK_SITE_CACHE_FILE)
-  caches = { official_site_cache_id: SCALADOC_HOME, spark_site_cache_id: SPARKDOC_HOME}
-
-  # official scaladoc
-  _CheckOfficialScaladocCache(caches, official_site_cache_id, cache_ttl)
-  _CheckOfficialScaladocCache(caches, spark_site_cache_id, cache_ttl)
+  caches = dict()
+  for url in scaladoc_urls:
+    url = _StripPath(url)
+    cache_id = _ComputeCacheId(url)
+    caches[cache_id] = url
+    _UpdateCacheFromNetwork(caches, cache_id, cache_ttl)
 
   # if docs local to file, add them to path
   api_path = _FindLocalDocs(file_name)
@@ -80,12 +75,9 @@ def Search(
 
   # additional paths
   for api_path in scaladoc_paths:
-    if api_path.endswith('/'):
-      api_path = api_path[:-1]
-    api_path = os.path.expanduser(api_path)
-    cache_id = os.path.join(
-        cache_dir, 'local_' + hashlib.sha1(api_path).hexdigest())
-    if _CheckLocalCache(cache_id, api_path):
+    api_path = os.path.expanduser(_StripPath(api_path))
+    cache_id = _ComputeCacheId(api_path)
+    if _UpdateCacheFromDisk(cache_id, api_path):
       caches[cache_id] = 'file://' + api_path
 
   last_keyword = keywords[-1].strip('"').lower()
@@ -122,8 +114,8 @@ def OpenUrl(url):
   webbrowser.open(url)
 
 
-def _CheckOfficialScaladocCache(caches_map, cache_id, cache_ttl):
-  """Checks if official scaladoc cache needs updating.
+def _UpdateCacheFromNetwork(caches_map, cache_id, cache_ttl):
+  """Checks if official scaladoc cache needs updating and updates it.
 
   Args:
     cache_id: Local cache id to use for site.
@@ -141,7 +133,8 @@ def _CheckOfficialScaladocCache(caches_map, cache_id, cache_ttl):
   if update_cache:
     obj_entry, prev_entry = None, None
     output_entries = set()
-    conn = urllib2.urlopen(caches_map[cache_id])
+    url = caches_map[cache_id]
+    conn = urllib2.urlopen(url)
     for line in conn.readlines():
       for m in HREF_PATTERN.finditer(line):
         obj_entry, prev_entry = _ParseCacheEntry(
@@ -191,7 +184,7 @@ def _FindLocalDocs(path):
       return max(results)  # use latest scala version
 
 
-def _CheckLocalCache(cache_id, api_path):
+def _UpdateCacheFromDisk(cache_id, api_path):
   """Checks if local cache needs updating and writes cache of docs.
 
   Args:
@@ -272,11 +265,17 @@ def _ClearStaleCacheEntries(cache_dir, cache_ttl):
 
   cache_ttl: Time cache can remain untouched before being deleted (days)
   """
-  for cache_id in glob.glob(os.path.join(cache_dir, 'local_*')):
+  for cache_id in glob.glob(os.path.join(cache_dir, '*')):
     last_modified = os.path.getmtime(cache_id)
     next_refresh = time.time() - (cache_ttl * 24 * 60 * 60)
     if last_modified < next_refresh:
       os.remove(cache_id)
+
+
+def _StripPath(path):
+  if path.endswith('/'):
+    path = path[:-1]
+  return path
 
 
 def _mkdir_p(path):
