@@ -58,8 +58,8 @@ PYTHON_CODE
 if !exists("g:scaladoc_cache_dir")
   let g:scaladoc_cache_dir = ''  " Use python default
 endif
-if !exists("g:scaladoc_cache_ttl")
-  let g:scaladoc_cache_ttl = 15
+if !exists("g:scaladoc_cache_ttl_days")
+  let g:scaladoc_cache_ttl_days = 15
 endif
 if !exists("g:scaladoc_paths")
   let g:scaladoc_paths = ''

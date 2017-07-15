@@ -38,16 +38,19 @@ INDEX_PATTERN = re.compile('^Index\.PACKAGES\s*=\s*({.*});$', re.DOTALL)
 
 USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.104 Safari/537.36'
 
+INDEX_JS = 'index.js'
+
 def Search(
-    file_name, keywords, scaladoc_paths=[], scaladoc_urls=[], cache_dir=None, cache_ttl=15):
+    file_name, keywords, scaladoc_paths=[], scaladoc_urls=[], cache_dir=None, cache_ttl_days=15):
   """Searchs for scala doc files based on keywords (package/class names).
 
   Args:
     file_name: File search invoked from.
     keywords: List of keywords
-    scaladoc_paths: Additional paths to search for scaladocs.
+    scaladoc_paths: Local directory paths to search for.
+    scaladoc_urls: URLs to search for scaladocs.
     cache_dir: Directory to store index cache in.
-    cache_ttl: Time (days) between refreshes of official scaladoc lib. Note,
+    cache_ttl_days: Time between refreshes of official scaladoc lib. Note,
       local caches are updated based on changes to the local index.html file.
 
     Search('foo.scala', ['list'])  = ['scala/collection/immutable/List.html']
@@ -66,14 +69,14 @@ def Search(
     hashsum = hashlib.sha1(data).hexdigest()
     return os.path.join(cache_dir, hashsum)
 
-  _ClearStaleCacheEntries(cache_dir, cache_ttl)
+  _ClearStaleCacheEntries(cache_dir, cache_ttl_days)
 
   caches = dict()
   for url in scaladoc_urls:
     url = _StripPath(url)
     cache_id = _ComputeCacheId(url)
     caches[cache_id] = url
-    _UpdateCacheFromNetwork(caches, cache_id, cache_ttl)
+    _UpdateCacheFromNetwork(caches, cache_id, cache_ttl_days)
 
   # if docs local to file, add them to path
   api_path = _FindLocalDocs(file_name)
@@ -121,25 +124,18 @@ def OpenUrl(url):
   webbrowser.open(url)
 
 
-def _UpdateCacheFromNetwork(caches_map, cache_id, cache_ttl):
-  """Checks if official scaladoc cache needs updating and updates it.
-
-  Args:
-    cache_id: Local cache id to use for site.
-    cache_ttl: Cache TTL.
-  """
-
+def _UpdateCacheFromNetwork(caches_map, cache_id, cache_ttl_days):
   if os.path.exists(cache_id):
     update_cache = True
     last_modified = os.path.getmtime(cache_id)
-    next_refresh = time.time() - (cache_ttl * 24 * 60 * 60)
+    next_refresh = time.time() - (cache_ttl_days * 24 * 60 * 60)
     update_cache = (last_modified < next_refresh)
   else:
     update_cache = True
   
   if update_cache:
     url = caches_map[cache_id]
-    raw_text = _HttpGet(url + '/index.js')
+    raw_text = _HttpGet(url + '/' + INDEX_JS)
     cache = _ParseIndex(raw_text)
     with open(cache_id, 'w') as output:
       output.write(cache)
@@ -152,18 +148,6 @@ def _HttpGet(url):
 
 
 def _FindLocalDocs(path):
-  """Searches for API doc dirs in target dir relative to given path
-
-  Example:
-    # The following will look for '~/myproject/target/scala-xxx/api' dirs
-    _FindLocalDocs('~/myproject/src/main/foo.scala')
-
-  Args:
-    path: Full path to a file that search invoked from.
-
-  Returns:
-    Full path to api docs if found (latest docs if multiple found) or None
-  """
   if not path:
     return None
 
@@ -180,7 +164,7 @@ def _FindLocalDocs(path):
       results = []
       for scala_path in glob.glob(os.path.join(target_path, 'scala-*')):
         api_path = os.path.join(scala_path, 'api')
-        if os.path.exists(os.path.join(api_path, 'index.js')):
+        if os.path.exists(os.path.join(api_path, INDEX_JS)):
           results.append(api_path)
       if not results:
         return None
@@ -188,15 +172,9 @@ def _FindLocalDocs(path):
 
 
 def _UpdateCacheFromDisk(cache_id, api_path):
-  """Checks if local cache needs updating and writes cache of docs.
-
-  Args:
-    cache_id: Cache id.
-    api_path: Full path to local API docs (without index.html).
-  """
   api_index = None
   if api_path:
-    api_index = os.path.join(api_path, 'index.js')
+    api_index = os.path.join(api_path, INDEX_JS)
   if not api_index or not os.path.exists(api_index):
     # del local cache
     if os.path.exists(cache_id):
@@ -219,14 +197,10 @@ def _UpdateCacheFromDisk(cache_id, api_path):
   return True
 
 
-def _ClearStaleCacheEntries(cache_dir, cache_ttl):
-  """Clears stale local cache entries from the filesytem.
-
-  cache_ttl: Time cache can remain untouched before being deleted (days)
-  """
+def _ClearStaleCacheEntries(cache_dir, cache_ttl_days):
   for cache_id in glob.glob(os.path.join(cache_dir, '*')):
     last_modified = os.path.getmtime(cache_id)
-    next_refresh = time.time() - (cache_ttl * 24 * 60 * 60)
+    next_refresh = time.time() - (cache_ttl_days * 24 * 60 * 60)
     if last_modified < next_refresh:
       os.remove(cache_id)
 

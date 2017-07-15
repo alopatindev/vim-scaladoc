@@ -23,11 +23,9 @@ about what you have done :)
 
 # Installation
 
-If you are using [pathogen](https://github.com/tpope/vim-pathogen), then
-simply copy and paste:
+If you are using [vim-plug](https://github.com/junegunn/vim-plug):
 
-    cd ~/.vim/bundle
-    git clone git://github.com/mdreves/vim-scaladoc.git
+    Plug 'git@github.com:alopatindev/vim-scaladoc.git'
 
 Once help tags have been generated, you can view the manual with
 `:help scaladoc`.
@@ -58,17 +56,17 @@ and indexes the docs, but subsequent runs should be fast.
 
 A few variables are available to customize settings:
 
-    g:scaladoc            :  Enable (1) / Disable (0) plugin
-                             (Default: 1)
-    g:scaladoc_cache_dir  :  Directory to store index caches in
-                             (Default: `tmp` dir of install directory)
-    g:scaladoc_cache_ttl  :  TTL (days) for cached indexes
-                             (Default: 15 days)
-    g:scaladoc_paths      :  Local directory paths (comma sep) to search for
-                             scaladocs (Default: '',
-                             Example: '/helloworld/target/scala-2.11/api/')
-    g:scaladoc_urls       :  URLs (comma sep) to search for scaladocs
-                             (Default: 'https://www.scala-lang.org/api/current')
+    g:scaladoc                 :  Enable (1) / Disable (0) plugin
+                                  (Default: 1)
+    g:scaladoc_cache_dir       :  Directory to store index caches in
+                                  (Default: `tmp` dir of install directory)
+    g:scaladoc_cache_ttl_days  :  TTL (days) for cached indexes
+                                  (Default: 15 days)
+    g:scaladoc_paths           :  Local directory paths (comma sep) to search for
+                                  scaladocs (Default: '',
+                                  Example: '/helloworld/target/scala-2.11/api/')
+    g:scaladoc_urls            :  URLs (comma sep) to search for scaladocs
+                                  (Default: 'https://www.scala-lang.org/api/current')
 
 Note: The TTL applies to the official scaladoc site and to general cache
 cleanup. Local API files are checked for modifications each time `:ScalaDoc` is

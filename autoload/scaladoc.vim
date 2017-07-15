@@ -54,10 +54,10 @@ keywords = vim.eval('a:keywords').split(',')
 scaladoc_paths = vim.eval('g:scaladoc_paths').split(',')
 scaladoc_urls = vim.eval('g:scaladoc_urls').split(',')
 cache_dir = vim.eval('g:scaladoc_cache_dir')
-cache_ttl = int(vim.eval('g:scaladoc_cache_ttl'))
+cache_ttl_days = int(vim.eval('g:scaladoc_cache_ttl_days'))
 
 matches = scaladoc.Search(
-    cur_file, keywords, scaladoc_paths, scaladoc_urls, cache_dir, cache_ttl)
+    cur_file, keywords, scaladoc_paths, scaladoc_urls, cache_dir, cache_ttl_days)
 
 for match in matches:
   vim.command('call add(matches, "%s")' % match.strip())
