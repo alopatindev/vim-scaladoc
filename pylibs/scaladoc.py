@@ -20,6 +20,7 @@
 import errno
 import glob
 import hashlib
+import json
 import os
 import re
 import sys
@@ -33,10 +34,9 @@ DEFAULT_CACHE_DIR = os.path.abspath(
 
 HREF_PATTERN = re.compile('href="([^ ><]*)"', re.I|re.U)
 
-USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.104 Safari/537.36'
+INDEX_PATTERN = re.compile('^Index\.PACKAGES\s*=\s*({.*});$', re.DOTALL)
 
-opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler())
-opener.addheaders = [('User-Agent', USER_AGENT)]
+USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.104 Safari/537.36'
 
 def Search(
     file_name, keywords, scaladoc_paths=[], scaladoc_urls=[], cache_dir=None, cache_ttl=15):
@@ -138,20 +138,17 @@ def _UpdateCacheFromNetwork(caches_map, cache_id, cache_ttl):
     update_cache = True
   
   if update_cache:
-    obj_entry, prev_entry = None, None
-    output_entries = set()
     url = caches_map[cache_id]
+    raw_text = _HttpGet(url + '/index.js')
+    cache = _ParseIndex(raw_text)
+    with open(cache_id, 'w') as output:
+      output.write(cache)
 
-    for line in opener.open(url).readlines():
-      for m in HREF_PATTERN.finditer(line.decode('utf-8')):
-        obj_entry, prev_entry = _ParseCacheEntry(
-            output_entries, m.group(1), obj_entry, prev_entry)
 
-    # Check for any last solo object entries (have no companions)
-    if obj_entry:
-      output_entries.add(obj_entry)
-
-    _WriteCache(cache_id, output_entries)
+def _HttpGet(url):
+  opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler())
+  opener.addheaders = [('User-Agent', USER_AGENT)]
+  return opener.open(url).read().decode('utf-8')
 
 
 def _FindLocalDocs(path):
@@ -183,7 +180,7 @@ def _FindLocalDocs(path):
       results = []
       for scala_path in glob.glob(os.path.join(target_path, 'scala-*')):
         api_path = os.path.join(scala_path, 'api')
-        if os.path.exists(os.path.join(api_path, 'index.html')):
+        if os.path.exists(os.path.join(api_path, 'index.js')):
           results.append(api_path)
       if not results:
         return None
@@ -199,71 +196,27 @@ def _UpdateCacheFromDisk(cache_id, api_path):
   """
   api_index = None
   if api_path:
-    api_index = os.path.join(api_path, 'index.html')
+    api_index = os.path.join(api_path, 'index.js')
   if not api_index or not os.path.exists(api_index):
     # del local cache
     if os.path.exists(cache_id):
       os.remove(cache_id)
     return False
 
+  update_cache = True
   if os.path.exists(cache_id):
-    update_cache = True
     cache_last_modified = os.path.getmtime(cache_id)
     api_last_modified = os.path.getmtime(api_path)
     update_cache = (cache_last_modified < api_last_modified)
-  else:
-    update_cache = True
 
   if update_cache:
-    obj_entry, prev_entry = None, None
-    output_entries = set()
     with open(api_index, 'r') as f:
-      for line in f:
-        for m in HREF_PATTERN.finditer(line):
-          obj_entry, prev_entry = _ParseCacheEntry(
-              output_entries, m.group(1), obj_entry, prev_entry)
-
-      # Check for any last solo object entries (have no companions)
-      if obj_entry:
-        output_entries.add(obj_entry)
-
-      _WriteCache(cache_id, output_entries)
+      raw_text = f.read()
+      cache = _ParseIndex(raw_text)
+      with open(cache_id, 'w') as output:
+        output.write(cache)
 
   return True
-
-
-def _WriteCache(filename, entries):
-  with open(filename, 'w+') as f:
-    output = '\n'.join(sorted(entries)) + '\n'
-    f.write(output)
-
-
-def _ParseCacheEntry(output_entries, entry, obj_entry, prev_entry):
-  """Write a cache entry taking into account if scala companion was written.
-
-  Args:
-    cache: Cache to write to.
-    entry: New entry read.
-    obj_entry: Holds last object entry read (object entries end in $.html)
-    pre_entyr: Holds prev entry read.
-
-  Returns:
-    2 tuple of new values for (obj_entry, prev_entry)
-  """
-  if entry.endswith('$.html'):
-    if entry[:-6] != prev_entry[:-5]:
-      return (entry, entry)  # don't know if companion exists yet, read next
-
-  if obj_entry:
-    if obj_entry[:-6] == entry[:-5]:
-      obj_entry = None  # ok to add object, no companion
-
-  if obj_entry:
-    output_entries.add(obj_entry)  # solo object entry (no companion)
-    obj_entry = None
-
-  output_entries.add(entry)
-  return (obj_entry, entry)
 
 
 def _ClearStaleCacheEntries(cache_dir, cache_ttl):
@@ -282,6 +235,28 @@ def _StripPath(path):
   if path.endswith('/'):
     path = path[:-1]
   return path
+
+
+def _ParseIndex(text):
+  types = ('object', 'trait', 'class', 'case class')
+  def dfs(node, result):
+    for key, value in node.items():
+      if key in types:
+        result.add(value + '\n')
+      elif type(value) is list:
+        for child in value:
+          dfs(child, result)
+
+  result = set()
+  try:
+    document = INDEX_PATTERN.match(text).group(1)
+    tree = json.loads(document)
+    dfs(tree, result)
+  except Exception as e:
+    print(e) # FIXME: print as error
+
+  sorted_result = sorted(result)
+  return ''.join(sorted_result)
 
 
 def _mkdir_p(path):
