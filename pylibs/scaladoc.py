@@ -40,6 +40,8 @@ USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Ge
 
 INDEX_JS = 'index.js'
 
+HTTP_TIMEOUT_SECONDS = 10
+
 def Search(
     file_name, keywords, scaladoc_paths=[], scaladoc_urls=[], cache_dir=None, cache_ttl_days=15):
   """Searchs for scala doc files based on keywords (package/class names).
@@ -144,7 +146,12 @@ def _UpdateCacheFromNetwork(caches_map, cache_id, cache_ttl_days):
 def _HttpGet(url):
   opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler())
   opener.addheaders = [('User-Agent', USER_AGENT)]
-  return opener.open(url).read().decode('utf-8')
+  raw_text = ''
+  try:
+    raw_text = opener.open(url, timeout=HTTP_TIMEOUT_SECONDS).read().decode('utf-8')
+  except Exception as e:
+    print(e) # FIXME: print as error
+  return raw_text
 
 
 def _FindLocalDocs(path):
