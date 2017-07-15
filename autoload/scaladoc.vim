@@ -111,6 +111,9 @@ import scaladoc
 url = vim.eval('a:url')
 scaladoc.OpenUrl(url)
 PYTHON_CODE
+
+  redraw
+  echomsg ''
 endfunction " }}}
 
 

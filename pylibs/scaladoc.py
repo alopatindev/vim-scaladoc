@@ -27,6 +27,7 @@ import sys
 import time
 import urllib
 import urllib.request
+import vim
 import webbrowser
 
 DEFAULT_CACHE_DIR = os.path.abspath(
@@ -137,6 +138,7 @@ def _UpdateCacheFromNetwork(caches_map, cache_id, cache_ttl_days):
   
   if update_cache:
     url = caches_map[cache_id]
+    _EchoInfo('Updating %s ...' % url)
     raw_text = _HttpGet(url + '/' + INDEX_JS)
     cache = _ParseIndex(raw_text)
     with open(cache_id, 'w') as output:
@@ -150,7 +152,8 @@ def _HttpGet(url):
   try:
     raw_text = opener.open(url, timeout=HTTP_TIMEOUT_SECONDS).read().decode('utf-8')
   except Exception as e:
-    print(e) # FIXME: print as error
+    _EchoError(e)
+
   return raw_text
 
 
@@ -195,6 +198,7 @@ def _UpdateCacheFromDisk(cache_id, api_path):
     update_cache = (cache_last_modified < api_last_modified)
 
   if update_cache:
+    _EchoInfo('Updating %s ...' % api_path)
     with open(api_index, 'r') as f:
       raw_text = f.read()
       cache = _ParseIndex(raw_text)
@@ -234,11 +238,16 @@ def _ParseIndex(text):
     tree = json.loads(document)
     dfs(tree, result)
   except Exception as e:
-    print(e) # FIXME: print as error
+    _EchoError(e)
 
   sorted_result = sorted(result)
   return ''.join(sorted_result)
 
+def _EchoError(message):
+  vim.eval('scaladoc#util#EchoError("%s")' % message)
+
+def _EchoInfo(message):
+  vim.command('redraw\nechomsg "%s"' % message)
 
 def _mkdir_p(path):
   try:
