@@ -30,16 +30,19 @@ endif
 let g:loaded_scaladoc = 1
 
 " Check python support
-if !has('python')
+if !has('python3')
   echoerr expand("<sfile>:t") . " Vim must be compiled with +python."
   finish
 endif
+
+let s:pyfile_cmd = 'py3file'
+let s:py_cmd = 'py3'
 
 let s:keepcpo = &cpo
 set cpo&vim
 
 " Update python path
-python << PYTHON_CODE
+python3 << PYTHON_CODE
 import os
 import sys
 import vim

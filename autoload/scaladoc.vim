@@ -45,7 +45,7 @@ function! scaladoc#Search(keywords, ...) abort " {{{
   let cur_file = expand('%:p')
   let matches = []
 
-python << PYTHON_CODE
+python3 << PYTHON_CODE
 import vim
 import scaladoc
 
@@ -104,7 +104,7 @@ function! scaladoc#OpenUrl(url) abort " {{{
     return scaladoc#util#EchoError('Missing URL')
   endif
 
-python << PYTHON_CODE
+python3 << PYTHON_CODE
 import vim
 import scaladoc
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Copyright 2012 Mike Dreves
 #
@@ -24,13 +24,19 @@ import os
 import re
 import sys
 import time
-import urllib2
+import urllib
+import urllib.request
 import webbrowser
 
 DEFAULT_CACHE_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..', 'tmp'))
 
 HREF_PATTERN = re.compile('href="([^ ><]*)"', re.I|re.U)
+
+USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.104 Safari/537.36'
+
+opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler())
+opener.addheaders = [('User-Agent', USER_AGENT)]
 
 def Search(
     file_name, keywords, scaladoc_paths=[], scaladoc_urls=[], cache_dir=None, cache_ttl=15):
@@ -56,7 +62,8 @@ def Search(
     _mkdir_p(cache_dir)
 
   def _ComputeCacheId(path):
-    hashsum = hashlib.sha1(path).hexdigest()
+    data = path.encode('utf-8')
+    hashsum = hashlib.sha1(data).hexdigest()
     return os.path.join(cache_dir, hashsum)
 
   _ClearStaleCacheEntries(cache_dir, cache_ttl)
@@ -95,7 +102,7 @@ def Search(
   matches_last = []  # exact matches on last keyword
   starts_with_last = []  # matches that start with last keyword
 
-  for cache_file_name, url_prefix in caches.iteritems():
+  for cache_file_name, url_prefix in caches.items():
     with open(cache_file_name, 'r') as cache:
       for line in cache:
         m = full_last_match(line)
@@ -134,12 +141,11 @@ def _UpdateCacheFromNetwork(caches_map, cache_id, cache_ttl):
     obj_entry, prev_entry = None, None
     output_entries = set()
     url = caches_map[cache_id]
-    conn = urllib2.urlopen(url)
-    for line in conn.readlines():
-      for m in HREF_PATTERN.finditer(line):
+
+    for line in opener.open(url).readlines():
+      for m in HREF_PATTERN.finditer(line.decode('utf-8')):
         obj_entry, prev_entry = _ParseCacheEntry(
             output_entries, m.group(1), obj_entry, prev_entry)
-    conn.close()
 
     # Check for any last solo object entries (have no companions)
     if obj_entry:
@@ -296,7 +302,7 @@ def main():
   if not docs:
     return 1
 
-  print ''.join(docs)
+  print(''.join(docs))
   return 0
 
 
