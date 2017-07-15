@@ -1,9 +1,10 @@
-This fork consists in adding the Spark scala doc in the index of ScalaDoc.
+This fork adds multiple URLs support, fixes and status messages.
 
 # Overview
 
-The vim-scaladoc plug-in is for use with [Vim](http://www.vim.org/) - who
-would have thought? It allows you to open scaladoc documentation in your
+The vim-scaladoc plug-in is for use with [Vim](http://www.vim.org/) or
+[Neovim](https://neovim.io/) - who would have thought?
+It allows you to open scaladoc documentation in your
 favorite browser based on keyword selection. By default the plugin will
 search the following locations for documentation:
 
@@ -17,8 +18,10 @@ appended to the parent of this directory and added to the search path.
 
 # Requirements
 
-This plugin requires VIM be compiled with +python. The plugin has been tested
-on Mac and Linux. If you are using Windows, go sit in the corner and think
+This plugin requires VIM be compiled with +python.
+Python 3 should be installed.
+The plugin has been tested on Mac and Linux.
+If you are using Windows, go sit in the corner and think
 about what you have done :)
 
 # Installation
@@ -60,16 +63,20 @@ A few variables are available to customize settings:
                                   (Default: 1)
     g:scaladoc_cache_dir       :  Directory to store index caches in
                                   (Default: `tmp` dir of install directory)
-    g:scaladoc_cache_ttl_days  :  TTL (days) for cached indexes
-                                  (Default: 15 days)
+    g:scaladoc_cache_ttl_days  :  TTL for cached indexes
+                                  (Default: 15)
     g:scaladoc_paths           :  Local directory paths (comma sep) to search for
                                   scaladocs (Default: '',
                                   Example: '/helloworld/target/scala-2.11/api/')
     g:scaladoc_urls            :  URLs (comma sep) to search for scaladocs
                                   (Default: 'https://www.scala-lang.org/api/current')
 
-Note: The TTL applies to the official scaladoc site and to general cache
-cleanup. Local API files are checked for modifications each time `:ScalaDoc` is
+URLs Example:
+
+    let g:scaladoc_urls = 'https://www.scala-lang.org/api/current,https://spark.apache.org/docs/latest/api/scala,https://datastax.github.io/spark-cassandra-connector/ApiDocs/2.0.3/spark-cassandra-connector,https://www.playframework.com/documentation/latest/api/scala,http://doc.akka.io/api/akka/current'
+
+Note: The TTL applies to network resources and to general cache cleanup.
+Local API files are checked for modifications each time `:ScalaDoc` is
 run in order to pickup changes from a local build.
 
 There are no built-in mappings added for scaladoc, but it is simple enough to
